@@ -159,7 +159,7 @@ public class CombatLog extends JavaPlugin implements Listener{
 			return;
 		}
 		
-		runCooldown(player, 7);
+		//runCooldown(player, 0);
 	}
 	
 	@EventHandler
