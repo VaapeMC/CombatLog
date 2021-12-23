@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+}
+
+group 'me.vaape'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven {
+        url = 'https://papermc.io/repo/repository/maven-public/'
+    }
+}
+
+dependencies {
+    compileOnly('io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT')
+    compileOnly('me.vaape:events:1.0.0')
+    // Download actionbar.jar, then (replace Dfile with actual file name) => mvn install:install-file -Dfile="ActionBarAPI (2).jar" -DgroupId=de.ancash -DartifactId=actionbar -Dversion=1.0.0 -Dpackaging=jar
+    compileOnly('de.ancash:actionbar:1.0.0')
+}
