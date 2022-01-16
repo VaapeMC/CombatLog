@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 java {
@@ -18,15 +17,7 @@ repositories {
     }
 }
 
-shadowJar {
-    dependencies {
-        include(dependency('de.ancash:actionbar:1.0.0'))
-    }
-}
-
 dependencies {
     compileOnly('io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT')
     compileOnly('me.vaape:events:1.0.0')
-    // Download actionbar.jar, then (replace Dfile with actual file name) => mvn install:install-file -Dfile="ActionBarAPI (2).jar" -DgroupId=de.ancash -DartifactId=actionbar -Dversion=1.0.0 -Dpackaging=jar
-    compileOnly('de.ancash:actionbar:1.0.0')
 }

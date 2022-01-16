@@ -1,7 +1,6 @@
 package me.vaape.combatlog;
 
 import com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent;
-import de.ancash.actionbar.ActionBarAPI;
 import me.vaape.events.Fishing;
 import me.vaape.events.GuildWars;
 import net.md_5.bungee.api.ChatColor;
@@ -147,26 +146,26 @@ public class CombatLog extends JavaPlugin implements Listener {
         }
 
         if (logoutCooldown.containsKey(player.getUniqueId())) {
-            if (!GuildWars.inCastle(player.getLocation()) || !Fishing.inFish(player.getLocation())) {
-                Inventory inventory = player.getInventory();
+            //            if (!GuildWars.inCastle(player.getLocation()) || !Fishing.inFish(player.getLocation())) {
+            Inventory inventory = player.getInventory();
 
-                for (int i = 0; i < inventory.getSize(); i++) { //Loop through each item slot in inventory
-                    if (inventory.getItem(i) != null) {
-                        ItemStack item = inventory.getItem(i);
-                        if (i > 35 && i < 40) { //Armour drops 100% of the time due to god effects
+            for (int i = 0; i < inventory.getSize(); i++) { //Loop through each item slot in inventory
+                if (inventory.getItem(i) != null) {
+                    ItemStack item = inventory.getItem(i);
+                    if (i > 35 && i < 40) { //Armour drops 100% of the time due to god effects
+                        player.getWorld().dropItemNaturally(player.getLocation(), item);
+                        inventory.setItem(i, new ItemStack(Material.AIR));
+                    } else {
+                        double random = Math.random();
+                        if (random > 0.5) { //50% chance;
                             player.getWorld().dropItemNaturally(player.getLocation(), item);
                             inventory.setItem(i, new ItemStack(Material.AIR));
-                        } else {
-                            double random = Math.random();
-                            if (random > 0.5) { //50% chance;
-                                player.getWorld().dropItemNaturally(player.getLocation(), item);
-                                inventory.setItem(i, new ItemStack(Material.AIR));
-                            }
                         }
                     }
                 }
-                Bukkit.broadcastMessage(ChatColor.RED + "" + ChatColor.BOLD + player.getName() + " has combat logged");
             }
+            Bukkit.broadcastMessage(ChatColor.RED + "" + ChatColor.BOLD + player.getName() + " has combat logged");
+            //            }
         }
     }
 
@@ -183,12 +182,12 @@ public class CombatLog extends JavaPlugin implements Listener {
 
     private void runCooldown(Player player, int seconds) {
 
-        if (player.hasPermission("combatlog.bypass")) {
-            return;
-        }
+        //        if (player.hasPermission("combatlog.bypass")) {
+        //            return;
+        //        }
 
         UUID UUID = player.getUniqueId();
-        ActionBarAPI.sendActionBar(player, ChatColor.RED + "Combat tag: " + seconds + " seconds");
+        player.sendActionBar(ChatColor.RED + "Combat tag: " + seconds + " seconds");
 
         if (logoutCooldown.containsKey(UUID)) { //If already on cooldown
             logoutCooldown.remove(UUID);
@@ -202,12 +201,12 @@ public class CombatLog extends JavaPlugin implements Listener {
             @Override
             public void run() {
                 logoutCooldown.put(UUID, logoutCooldown.get(UUID) - 1); //Lower cooldown by 1 second
-                ActionBarAPI.sendActionBar(player, ChatColor.RED + "Combat tag: " + logoutCooldown.get(UUID) + " " +
-                        "seconds");
+                player.sendActionBar(ChatColor.RED + "Combat tag: " + logoutCooldown.get(UUID) + " " +
+                                             "seconds");
                 if (logoutCooldown.get(UUID) == 0) {
                     logoutCooldown.remove(UUID);
                     logoutCooldownTask.remove(UUID);
-                    ActionBarAPI.sendActionBar(player, ChatColor.GREEN + "Combat tag expired");
+                    player.sendActionBar(ChatColor.GREEN + "Combat tag expired");
                     cancel();
                 }
             }
