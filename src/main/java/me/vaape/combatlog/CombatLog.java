@@ -12,17 +12,18 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -141,6 +142,8 @@ public class CombatLog extends JavaPlugin implements Listener {
 
         Player player = event.getPlayer();
 
+        if (player.hasPermission("combatlog.bypass")) return;
+
         if (GuildWars.inSpawn(player.getLocation())) {
             logoutCooldown.remove(player.getUniqueId());
         }
@@ -182,10 +185,6 @@ public class CombatLog extends JavaPlugin implements Listener {
 
     private void runCooldown(Player player, int seconds) {
 
-        //        if (player.hasPermission("combatlog.bypass")) {
-        //            return;
-        //        }
-
         UUID UUID = player.getUniqueId();
         player.sendActionBar(ChatColor.RED + "Combat tag: " + seconds + " seconds");
 
@@ -213,5 +212,41 @@ public class CombatLog extends JavaPlugin implements Listener {
         });
 
         logoutCooldownTask.get(UUID).runTaskTimer(instance, 20, 20);
+    }
+
+    //Trident
+    @EventHandler
+    public void onRiptide (PlayerRiptideEvent event) {
+        if (event.getPlayer().hasPermission("combatlog.bypass")) return;
+
+        if (logoutCooldown.containsKey(event.getPlayer().getUniqueId())) {
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot use tridents during combat.");
+                    event.getPlayer().setVelocity(new Vector(0,0,0));
+                    float randomPitch = (float) ((Math.random() * 180) - 90);
+                    float randomYaw = (float) ((Math.random() * 360) - 180);
+                    Location discombobulatedLocation = event.getPlayer().getLocation().clone();
+                    discombobulatedLocation.setYaw(randomYaw);
+                    discombobulatedLocation.setPitch(randomPitch);
+                    event.getPlayer().teleport(discombobulatedLocation);
+                }
+            }.runTaskLater(instance, 1);
+        }
+    }
+
+    @EventHandler
+    public void onGlide (EntityToggleGlideEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            if (!logoutCooldown.containsKey(player.getUniqueId())) return;
+
+            if (!player.isGliding()) {
+                event.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "You cannot use elytra in combat!");
+            }
+        }
     }
 }
