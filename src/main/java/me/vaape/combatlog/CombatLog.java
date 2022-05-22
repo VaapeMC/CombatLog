@@ -1,6 +1,5 @@
 package me.vaape.combatlog;
 
-import com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent;
 import me.vaape.events.Fishing;
 import me.vaape.events.GuildWars;
 import net.md_5.bungee.api.ChatColor;
@@ -8,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,9 +19,9 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +36,7 @@ public class CombatLog extends JavaPlugin implements Listener {
 
     public void onEnable() {
         instance = this;
-        getLogger().info(ChatColor.GREEN + "CombatLog has been enabled!");
+        getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "CombatLog has been enabled!");
         getServer().getPluginManager().registerEvents(this, this);
     }
 
@@ -47,14 +45,14 @@ public class CombatLog extends JavaPlugin implements Listener {
     }
 
     //Enderpearl
-    @EventHandler
-    public void onPearl(PlayerLaunchProjectileEvent event) {
-        if (event.getProjectile() instanceof EnderPearl) {
-            Player player = event.getPlayer();
-
-            runCooldown(player, 7);
-        }
-    }
+//    @EventHandler
+//    public void onPearl(PlayerLaunchProjectileEvent event) {
+//        if (event.getProjectile() instanceof EnderPearl) {
+//            Player player = event.getPlayer();
+//
+//            runCooldown(player, 7);
+//        }
+//    }
 
     @EventHandler
     public void onCommand(PlayerCommandPreprocessEvent event) {
@@ -95,10 +93,11 @@ public class CombatLog extends JavaPlugin implements Listener {
 
         if (event.getEntity() instanceof Player player) {
             if (event.getDamager() instanceof Player) {
-
+                player.setGliding(false);
                 runCooldown(player, 30);
             } else if (event.getDamager() instanceof Arrow arrow) {
                 if (arrow.getShooter() instanceof Player) {
+                    player.setGliding(false);
                     runCooldown(player, 30);
                 }
             }
@@ -144,12 +143,11 @@ public class CombatLog extends JavaPlugin implements Listener {
 
         if (player.hasPermission("combatlog.bypass")) return;
 
-        if (GuildWars.inSpawn(player.getLocation())) {
+        if (GuildWars.inSpawn(player.getLocation()) || Fishing.inFish(player.getLocation())) {
             logoutCooldown.remove(player.getUniqueId());
         }
 
         if (logoutCooldown.containsKey(player.getUniqueId())) {
-            //            if (!GuildWars.inCastle(player.getLocation()) || !Fishing.inFish(player.getLocation())) {
             Inventory inventory = player.getInventory();
 
             for (int i = 0; i < inventory.getSize(); i++) { //Loop through each item slot in inventory
@@ -185,6 +183,8 @@ public class CombatLog extends JavaPlugin implements Listener {
 
     private void runCooldown(Player player, int seconds) {
 
+        if (player.hasPermission("combatlog.bypass")) return;
+
         UUID UUID = player.getUniqueId();
         player.sendActionBar(ChatColor.RED + "Combat tag: " + seconds + " seconds");
 
@@ -201,7 +201,7 @@ public class CombatLog extends JavaPlugin implements Listener {
             public void run() {
                 logoutCooldown.put(UUID, logoutCooldown.get(UUID) - 1); //Lower cooldown by 1 second
                 player.sendActionBar(ChatColor.RED + "Combat tag: " + logoutCooldown.get(UUID) + " " +
-                                             "seconds");
+                        "seconds");
                 if (logoutCooldown.get(UUID) == 0) {
                     logoutCooldown.remove(UUID);
                     logoutCooldownTask.remove(UUID);
@@ -214,39 +214,36 @@ public class CombatLog extends JavaPlugin implements Listener {
         logoutCooldownTask.get(UUID).runTaskTimer(instance, 20, 20);
     }
 
-    //Trident
     @EventHandler
-    public void onRiptide (PlayerRiptideEvent event) {
-        if (event.getPlayer().hasPermission("combatlog.bypass")) return;
-
-        if (logoutCooldown.containsKey(event.getPlayer().getUniqueId())) {
-
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    event.getPlayer().sendMessage(ChatColor.RED + "You cannot use tridents during combat.");
-                    event.getPlayer().setVelocity(new Vector(0,0,0));
-                    float randomPitch = (float) ((Math.random() * 180) - 90);
-                    float randomYaw = (float) ((Math.random() * 360) - 180);
-                    Location discombobulatedLocation = event.getPlayer().getLocation().clone();
-                    discombobulatedLocation.setYaw(randomYaw);
-                    discombobulatedLocation.setPitch(randomPitch);
-                    event.getPlayer().teleport(discombobulatedLocation);
+    public void onFireworkBoost (PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            Player player = event.getPlayer();
+            if (player.getInventory().getItemInMainHand().getType() == Material.FIREWORK_ROCKET || player.getInventory().getItemInOffHand().getType() == Material.FIREWORK_ROCKET) {
+                if (!logoutCooldown.containsKey(player.getUniqueId())) return;
+                if (player.getInventory().getChestplate().getType() == Material.ELYTRA) {
+                    player.sendMessage(ChatColor.RED + "You cannot elytra boost during combat.");
+                    event.setCancelled(true);
                 }
-            }.runTaskLater(instance, 1);
+            }
         }
     }
 
     @EventHandler
-    public void onGlide (EntityToggleGlideEvent event) {
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
-            if (!logoutCooldown.containsKey(player.getUniqueId())) return;
+    public void onElytraFly (EntityToggleGlideEvent event) {
+        if (event.isGliding() == false) return;
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!logoutCooldown.containsKey(event.getEntity().getUniqueId())) return;
+        ItemStack elytra = player.getInventory().getChestplate();
+        if (elytra == null) return;
+        player.getInventory().setChestplate(null);
+        player.sendMessage(ChatColor.RED + "Elytra flight is disabled in combat.");
 
-            if (!player.isGliding()) {
-                event.setCancelled(true);
-                player.sendMessage(ChatColor.RED + "You cannot use elytra in combat!");
+        new BukkitRunnable() {
+
+            @Override
+            public void run() {
+                player.getInventory().setChestplate(elytra);
             }
-        }
+        }.runTaskLater(instance, 10);
     }
 }

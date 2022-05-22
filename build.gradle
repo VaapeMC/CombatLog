@@ -15,9 +15,12 @@ repositories {
     maven {
         url = 'https://papermc.io/repo/repository/maven-public/'
     }
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 dependencies {
-    compileOnly('io.papermc.paper:paper-api:1.18.1-R0.1-SNAPSHOT')
-    compileOnly('me.vaape:events:1.0.0')
+    compileOnly('io.papermc.paper:paper-api:1.18.2-R0.1-SNAPSHOT')
+    implementation files('libs/Events-1.0.0.jar')
 }
